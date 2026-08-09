@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Notes Board</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #c28d53;
+            background-image: 
+                radial-gradient(rgba(0, 0, 0, 0.15) 15%, transparent 16%),
+                radial-gradient(rgba(255, 255, 255, 0.1) 15%, transparent 16%),
+                radial-gradient(rgba(0, 0, 0, 0.1) 15%, transparent 20%),
+                radial-gradient(rgba(255, 255, 255, 0.15) 15%, transparent 20%);
+            background-size: 60px 60px, 60px 60px, 30px 30px, 30px 30px;
+            background-position: 0 0, 30px 30px, 15px 15px, 45px 45px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .controls-bar {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .add-note-btn {
+            background: #222;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-note-btn:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        .add-note-btn:active {
+            transform: translateY(0);
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            background: rgba(34, 34, 34, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 9px 14px 9px 34px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            width: 180px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .search-input::placeholder {
+            color: #aaa;
+        }
+
+        .search-input:focus {
+            background: rgba(20, 20, 20, 0.95);
+            border-color: rgba(255, 255, 255, 0.4);
+            width: 220px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            color: #aaa;
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        .shortcuts-btn {
+            background: rgba(34, 34, 34, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 9px 12px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shortcuts-btn:hover {
+            background: rgba(50, 50, 50, 0.95);
+            transform: translateY(-2px);
+        }
+
+        .filter-container {
+            display: flex;
+            align-items: center;
+            background: rgba(34, 34, 34, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 4px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-btn.active {
+            background: #fff;
+            color: #222;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Dashboard Bar */
+        .dashboard-bar {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(20, 20, 20, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 10px 22px;
+            border-radius: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #fff;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .stat-divider {
+            width: 1px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .shortcuts-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            background: #222;
+            color: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            z-index: 150;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            max-width: 320px;
+            width: 90%;
+        }
+
+        .shortcuts-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .shortcuts-modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcuts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        kbd {
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #ffda6a;
+            box-shadow: 0 2px 0 #111;
+        }
+
+        .close-modal-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 1.2rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-modal-btn:hover {
+            color: #fff;
+        }
+
+        .board {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+        }
+
+        .note-wrapper {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            perspective: 1000px;
+            touch-action: none;
+            user-select: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .note-wrapper.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8) !important;
+        }
+
+        .note-back {
+            position: absolute;
+            top: 5px;
+            left: -6px;
+            width: 100%;
+            height: 100%;
+            box-shadow: 2px 5px 12px rgba(0,0,0,0.25);
+            border-radius: 2px;
+            background-color: #ebdcb9;
+            pointer-events: none;
+        }
+
+        .note-front {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 35px 18px 12px;
+            box-shadow: 3px 8px 18px rgba(0,0,0,0.3);
+            border-radius: 2px;
+            cursor: grab;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            background-color: #f6eedb;
+        }
+
+        .note-wrapper.dragging .note-front {
+            cursor: grabbing;
+            box-shadow: 10px 20px 30px rgba(0,0,0,0.4);
+        }
+
+        .note-wrapper.completed .note-front {
+            opacity: 0.85;
+        }
+
+        .note-wrapper.completed textarea {
+            text-decoration: line-through;
+            color: #777;
+        }
+
+        .pin {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            z-index: 5;
+            background: #e63946;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .pin:hover {
+            transform: translateX(-50%) scale(1.15);
+        }
+
+        .note-wrapper.pinned .pin {
+            background: #ffb703;
+            box-shadow: 0 0 10px rgba(255, 183, 3, 0.8);
+        }
+
+        .pin::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .pin::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 8px;
+            background: #aaa;
+            z-index: -1;
+        }
+
+        .category-selector {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 6;
+        }
+
+        .category-select {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .category-select:hover {
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .action-btns {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 6;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            line-height: 1;
+            padding: 2px;
+        }
+
+        .icon-btn:hover {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+
+        .color-picker-input {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 7;
+        }
+
+        .color-btn-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        textarea {
+            width: 100%;
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Comic Sans MS', 'Caveat', cursive, sans-serif;
+            font-size: 1.05rem;
+            line-height: 1.35;
+            color: #333;
+            cursor: text;
+        }
+
+        .note-footer {
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 0.68rem;
+            color: rgba(0,0,0,0.45);
+            user-select: none;
+            line-height: 1.2;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            padding-top: 4px;
+        }
+
+        .note-timestamps {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            text-align: left;
+        }
+
+        .char-counter {
+            font-weight: 600;
+        }
+
+        .note-wrapper.focused {
+            z-index: 101 !important;
+        }
+
+        .note-wrapper.focused .note-front {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: min(85vw, 380px);
+            height: min(85vw, 380px);
+            max-height: 70vh;
+            transform: translate(-50%, -50%) rotate(0deg) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            z-index: 102;
+            cursor: default;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: #222;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls-bar">
+        <button class="add-note-btn" id="addNoteBtn">
+            <span>+</span> New Note
+        </button>
+
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search notes... (Ctrl+F)">
+        </div>
+
+        <button class="shortcuts-btn" id="shortcutsBtn" title="Keyboard Shortcuts">
+            ⌨️
+        </button>
+
+        <div class="filter-container">
+            <button class="filter-btn active" data-category="all">All</button>
+            <button class="filter-btn" data-category="work">🟥 Work</button>
+            <button class="filter-btn" data-category="school">🟨 School</button>
+            <button class="filter-btn" data-category="personal">🟩 Personal</button>
+            <button class="filter-btn" data-category="shopping">🟦 Shopping</button>
+            <button class="filter-btn" data-category="other">🟧 Other</button>
+        </div>
+    </div>
+
+    <!-- Live Dashboard Bar -->
+    <div class="dashboard-bar">
+        <div class="stat-item">
+            📝 Notes <span class="stat-value" id="statNotes">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            ✍️ Characters <span class="stat-value" id="statChars">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            🏷️ Categories <span class="stat-value" id="statCats">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            📌 Pinned <span class="stat-value" id="statPinned">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            ✅ Completed <span class="stat-value" id="statCompleted">0</span>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="shortcuts-modal" id="shortcutsModal">
+        <h3>
+            Keyboard Shortcuts
+            <button class="close-modal-btn" id="closeModalBtn">&times;</button>
+        </h3>
+        <div class="shortcuts-list">
+            <div class="shortcut-item">
+                <span>New note</span>
+                <kbd>Ctrl + N</kbd>
+            </div>
+            <div class="shortcut-item">
+                <span>Save</span>
+                <kbd>Ctrl + S</kbd>
+            </div>
+            <div class="shortcut-item">
+                <span>Delete note</span>
+                <kbd>Delete</kbd>
+            </div>
+            <div class="shortcut-item">
+                <span>Search</span>
+                <kbd>Ctrl + F</kbd>
+            </div>
+            <div class="shortcut-item">
+                <span>Close note</span>
+                <kbd>Esc</kbd>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">💾 Notes saved!</div>
+
+    <div class="board" id="board"></div>
+
+    <script>
+        const board = document.getElementById('board');
+        const overlay = document.getElementById('overlay');
+        const addNoteBtn = document.getElementById('addNoteBtn');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const searchInput = document.getElementById('searchInput');
+        const shortcutsBtn = document.getElementById('shortcutsBtn');
+        const shortcutsModal = document.getElementById('shortcutsModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const toast = document.getElementById('toast');
+
+        // Dashboard Elements
+        const statNotes = document.getElementById('statNotes');
+        const statChars = document.getElementById('statChars');
+        const statCats = document.getElementById('statCats');
+        const statPinned = document.getElementById('statPinned');
+        const statCompleted = document.getElementById('statCompleted');
+
+        let activeWrapper = null;
+        let highestZIndex = 10;
+        let notes = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        const categoryConfig = {
+            select: { emoji: '⬜', label: 'Select Category', defaultColor: '#f6eedb' },
+            work: { emoji: '🟥', label: 'Work', defaultColor: '#ffadad' },
+            school: { emoji: '🟨', label: 'School', defaultColor: '#ffd6a5' },
+            personal: { emoji: '🟩', label: 'Personal', defaultColor: '#caffbf' },
+            shopping: { emoji: '🟦', label: 'Shopping', defaultColor: '#9bf6ff' },
+            other: { emoji: '🟧', label: 'Other', defaultColor: '#ffc6ff' }
+        };
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const months = [
+                'january', 'february', 'march', 'april', 'may', 'june',
+                'july', 'august', 'september', 'october', 'november', 'december'
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        function formatEditedAgo(timestamp) {
+            const now = Date.now();
+            let seconds = Math.floor((now - timestamp) / 1000);
+
+            if (seconds < 0) seconds = 0;
+
+            if (seconds < 60) {
+                return `${seconds} second${seconds === 1 ? '' : 's'} ago`;
+            }
+
+            let minutes = Math.floor(seconds / 60);
+            if (minutes < 60) {
+                return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+            }
+
+            let hours = Math.floor(minutes / 60);
+            if (hours < 24) {
+                return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+            }
+
+            let days = Math.floor(hours / 24);
+
+            if (days < 7) {
+                return `${days} day${days === 1 ? '' : 's'} ago`;
+            }
+
+            if (days === 7) {
+                return `1 week ago`;
+            }
+
+            let weeks = Math.floor(days / 7);
+            let remDays = days % 7;
+
+            if (days < 30) {
+                if (remDays === 0) {
+                    return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+                }
+                return `${weeks} week${weeks === 1 ? '' : 's'} and ${remDays} day${remDays === 1 ? '' : 's'} ago`;
+            }
+
+            let months = Math.floor(days / 30);
+            let remDaysAfterMonth = days % 30;
+
+            if (days < 365) {
+                let parts = [];
+                if (weeks > 0) parts.push(`${weeks} week${weeks === 1 ? '' : 's'}`);
+                if (remDaysAfterMonth > 0) parts.push(`${remDaysAfterMonth} day${remDaysAfterMonth === 1 ? '' : 's'}`);
+                parts.push(`${months} month${months === 1 ? '' : 's'}`);
+                return `${parts.join(', ')} ago`;
+            }
+
+            let years = Math.floor(days / 365);
+            let remDaysAfterYear = days % 365;
+            let remMonths = Math.floor(remDaysAfterYear / 30);
+
+            let parts = [];
+            if (years > 0) parts.push(`${years} year${years === 1 ? '' : 's'}`);
+            if (remMonths > 0) parts.push(`${remMonths} month${remMonths === 1 ? '' : 's'}`);
+            
+            return `${parts.join(', ')} ago`;
+        }
+
+        function adjustColor(hex, percent) {
+            let num = parseInt(hex.replace('#', ''), 16);
+            let amt = Math.round(2.55 * percent);
+            let R = (num >> 16) + amt;
+            let G = (num >> 8 & 0x00FF) + amt;
+            let B = (num & 0x0000FF) + amt;
+
+            return '#' + (
+                0x1000000 +
+                (R < 255 ? (R < 0 ? 0 : R) : 255) * 0x10000 +
+                (G < 255 ? (G < 0 ? 0 : G) : 255) * 0x100 +
+                (B < 255 ? (B < 0 ? 0 : B) : 255)
+            ).toString(16).slice(1);
+        }
+
+        const getRandomRotation = (min = -5, max = 5) => {
+            return (Math.random() * (max - min) + min).toFixed(2);
+        };
+
+        function updateDashboardStats() {
+            const totalNotes = notes.length;
+            const totalChars = notes.reduce((sum, n) => sum + (n.content ? n.content.length : 0), 0);
+            
+            const usedCategories = new Set(notes.map(n => n.category).filter(c => c && c !== 'select'));
+            const totalCategories = usedCategories.size;
+            
+            const totalPinned = notes.filter(n => n.pinned).length;
+            const totalCompleted = notes.filter(n => n.completed).length;
+
+            statNotes.textContent = totalNotes.toLocaleString();
+            statChars.textContent = totalChars.toLocaleString();
+            statCats.textContent = totalCategories.toLocaleString();
+            statPinned.textContent = totalPinned.toLocaleString();
+            statCompleted.textContent = totalCompleted.toLocaleString();
+        }
+
+        function showToast(msg = '💾 Notes saved!') {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function saveNotesToStorage() {
+            localStorage.setItem('sticky_notes_data', JSON.stringify(notes));
+            updateDashboardStats();
+        }
+
+        function loadNotesFromStorage() {
+            const data = localStorage.getItem('sticky_notes_data');
+            if (data) {
+                try {
+                    notes = JSON.parse(data);
+                } catch (e) {
+                    notes = [];
+                }
+            } else {
+                notes = [];
+                // Initialize default notes if empty
+                const initialCategories = ['work', 'personal', 'school'];
+                initialCategories.forEach(cat => {
+                    notes.push(createNoteObject({ category: cat }));
+                });
+                saveNotesToStorage();
+            }
+        }
+
+        function createNoteObject(customData = {}) {
+            highestZIndex++;
+            const category = customData.category || 'other';
+            const defaultColor = categoryConfig[category].defaultColor;
+            const now = Date.now();
+
+            const offsetX = Math.floor(Math.random() * 100) - 50;
+            const offsetY = Math.floor(Math.random() * 100) - 50;
+
+            return {
+                id: customData.id || now + '_' + Math.random().toString(36).substr(2, 5),
+                content: customData.content || '',
+                category: category,
+                color: customData.color || defaultColor,
+                pinned: customData.pinned || false,
+                completed: customData.completed || false,
+                createdAt: customData.createdAt || now,
+                updatedAt: customData.updatedAt || now,
+                posX: customData.posX !== undefined ? customData.posX : (window.innerWidth / 2 - 120 + offsetX),
+                posY: customData.posY !== undefined ? customData.posY : (window.innerHeight / 2 - 120 + offsetY),
+                posZ: customData.posZ || highestZIndex,
+                rotFront: customData.rotFront || getRandomRotation(-4, 4),
+                rotBack: customData.rotBack || getRandomRotation(-6, 6)
+            };
+        }
+
+        function applyVisibility(wrapper, category, content) {
+            const matchesCategory = currentFilter === 'all' || category === currentFilter;
+            const matchesSearch = !searchQuery || content.toLowerCase().includes(searchQuery.toLowerCase());
+
+            if (matchesCategory && matchesSearch) {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+            }
+        }
+
+        function renderNote(noteData) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `note-wrapper`;
+            wrapper.dataset.id = noteData.id;
+            wrapper.dataset.category = noteData.category;
+
+            if (noteData.pinned) wrapper.classList.add('pinned');
+            if (noteData.completed) wrapper.classList.add('completed');
+
+            wrapper.style.left = `${noteData.posX}px`;
+            wrapper.style.top = `${noteData.posY}px`;
+            wrapper.style.zIndex = noteData.posZ;
+
+            if (noteData.posZ > highestZIndex) {
+                highestZIndex = noteData.posZ;
+            }
+
+            applyVisibility(wrapper, noteData.category, noteData.content);
+
+            wrapper.innerHTML = `
+                <div class="note-back"></div>
+                <div class="note-front">
+                    <div class="pin" title="Toggle Pin"></div>
+                    <div class="category-selector">
+                        <select class="category-select">
+                            <option value="select" ${noteData.category === 'select' ? 'selected' : ''}>⬜ Select Category</option>
+                            <option value="work" ${noteData.category === 'work' ? 'selected' : ''}>🟥 Work</option>
+                            <option value="school" ${noteData.category === 'school' ? 'selected' : ''}>🟨 School</option>
+                            <option value="personal" ${noteData.category === 'personal' ? 'selected' : ''}>🟩 Personal</option>
+                            <option value="shopping" ${noteData.category === 'shopping' ? 'selected' : ''}>🟦 Shopping</option>
+                            <option value="other" ${noteData.category === 'other' ? 'selected' : ''}>🟧 Other</option>
+                        </select>
+                    </div>
+                    <div class="action-btns">
+                        <button class="icon-btn complete-btn" title="Toggle Complete">${noteData.completed ? '✅' : '☑️'}</button>
+                        <div class="color-btn-wrapper">
+                            <button class="icon-btn" title="Change Color">🎨</button>
+                            <input type="color" class="color-picker-input">
+                        </div>
+                        <button class="icon-btn duplicate-btn" title="Duplicate Note">📋</button>
+                        <button class="icon-btn delete-btn" title="Delete Note">🗑️</button>
+                    </div>
+                    <textarea maxlength="225" placeholder="Type here..."></textarea>
+                    <div class="note-footer">
+                        <div class="note-timestamps">
+                            <span class="created-at">Created: ${formatDate(noteData.createdAt)}</span>
+                            <span class="updated-at">Edited: ${formatEditedAgo(noteData.updatedAt)}</span>
+                        </div>
+                        <div class="char-counter">225 left</div>
+                    </div>
+                </div>
+            `;
+
+            const textarea = wrapper.querySelector('textarea');
+            const counter = wrapper.querySelector('.char-counter');
+            const updatedAtEl = wrapper.querySelector('.updated-at');
+            const front = wrapper.querySelector('.note-front');
+            const back = wrapper.querySelector('.note-back');
+            const colorPicker = wrapper.querySelector('.color-picker-input');
+            const categorySelect = wrapper.querySelector('.category-select');
+            const pinBtn = wrapper.querySelector('.pin');
+            const completeBtn = wrapper.querySelector('.complete-btn');
+            const duplicateBtn = wrapper.querySelector('.duplicate-btn');
+            const deleteBtn = wrapper.querySelector('.delete-btn');
+
+            front.style.transform = `rotate(${noteData.rotFront}deg)`;
+            back.style.transform = `rotate(${noteData.rotBack}deg)`;
+
+            applyColor(noteData.color);
+
+            function applyColor(hexColor) {
+                front.style.backgroundColor = hexColor;
+                back.style.backgroundColor = adjustColor(hexColor, -12);
+                colorPicker.value = hexColor;
+            }
+
+            textarea.value = noteData.content;
+            const remaining = 225 - noteData.content.length;
+            counter.textContent = `${remaining} left`;
+
+            function updateEditedTime() {
+                noteData.updatedAt = Date.now();
+                updatedAtEl.textContent = `Edited: ${formatEditedAgo(noteData.updatedAt)}`;
+                saveNotesToStorage();
+            }
+
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                noteData.pinned = !noteData.pinned;
+                wrapper.classList.toggle('pinned', noteData.pinned);
+                saveNotesToStorage();
+            });
+
+            completeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                noteData.completed = !noteData.completed;
+                wrapper.classList.toggle('completed', noteData.completed);
+                completeBtn.textContent = noteData.completed ? '✅' : '☑️';
+                saveNotesToStorage();
+            });
+
+            categorySelect.addEventListener('change', (e) => {
+                const newCat = e.target.value;
+                noteData.category = newCat;
+                wrapper.dataset.category = newCat;
+                
+                noteData.color = categoryConfig[newCat].defaultColor;
+                applyColor(noteData.color);
+
+                updateEditedTime();
+                applyVisibility(wrapper, noteData.category, noteData.content);
+            });
+
+            categorySelect.addEventListener('pointerdown', (e) => e.stopPropagation());
+            categorySelect.addEventListener('click', (e) => e.stopPropagation());
+
+            colorPicker.addEventListener('input', (e) => {
+                const selectedColor = e.target.value;
+                applyColor(selectedColor);
+                noteData.color = selectedColor;
+                updateEditedTime();
+            });
+
+            textarea.addEventListener('input', () => {
+                const text = textarea.value;
+                const remaining = 225 - text.length;
+                counter.textContent = `${remaining} left`;
+                noteData.content = text;
+                updateEditedTime();
+            });
+
+            duplicateBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                duplicateNote(noteData);
+            });
+
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteNote(wrapper, noteData.id);
+            });
+
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+            let hasDragged = false;
+
+            function onPointerDown(e) {
+                if (e.target.closest('.action-btns') || e.target.closest('.category-selector') || e.target.closest('.pin') || wrapper.classList.contains('focused')) {
+                    return;
+                }
+
+                highestZIndex++;
+                wrapper.style.zIndex = highestZIndex;
+                noteData.posZ = highestZIndex;
+                saveNotesToStorage();
+
+                isDragging = true;
+                hasDragged = false;
+                wrapper.classList.add('dragging');
+
+                startX = e.clientX || (e.touches && e.touches[0].clientX);
+                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                initialLeft = wrapper.offsetLeft;
+                initialTop = wrapper.offsetTop;
+
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+
+                const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+                const currentY = e.clientY || (e.touches && e.touches[0].clientY);
+                const deltaX = currentX - startX;
+                const deltaY = currentY - startY;
+
+                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                    hasDragged = true;
+                }
+
+                const newLeft = initialLeft + deltaX;
+                const newTop = initialTop + deltaY;
+
+                wrapper.style.left = `${newLeft}px`;
+                wrapper.style.top = `${newTop}px`;
+            }
+
+            function onPointerUp() {
+                if (!isDragging) return;
+                isDragging = false;
+                wrapper.classList.remove('dragging');
+
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerUp);
+
+                if (hasDragged) {
+                    noteData.posX = wrapper.offsetLeft;
+                    noteData.posY = wrapper.offsetTop;
+                    saveNotesToStorage();
+                }
+            }
+
+            wrapper.addEventListener('pointerdown', onPointerDown);
+
+            wrapper.addEventListener('click', (e) => {
+                if (hasDragged) {
+                    e.stopPropagation();
+                    return;
+                }
+                if (e.target.closest('.action-btns') || e.target.closest('.category-selector') || e.target.closest('.pin')) return;
+                if (activeWrapper === wrapper) return;
+                activateNote(wrapper);
+            });
+
+            board.appendChild(wrapper);
+            return wrapper;
+        }
+
+        function createNewNote() {
+            const defaultCat = currentFilter === 'all' ? 'other' : currentFilter;
+            const newNoteData = createNoteObject({ category: defaultCat });
+            notes.push(newNoteData);
+            saveNotesToStorage();
+            const wrapper = renderNote(newNoteData);
+            activateNote(wrapper);
+        }
+
+        function duplicateNote(noteData) {
+            const newNoteData = createNoteObject({
+                content: noteData.content,
+                category: noteData.category,
+                color: noteData.color,
+                pinned: noteData.pinned,
+                completed: noteData.completed,
+                posX: noteData.posX + 30,
+                posY: noteData.posY + 30
+            });
+            notes.push(newNoteData);
+            saveNotesToStorage();
+            renderNote(newNoteData);
+        }
+
+        function deleteNote(wrapper, id) {
+            if (activeWrapper === wrapper) {
+                closeActiveNote();
+            }
+            wrapper.remove();
+            notes = notes.filter(n => n.id !== id);
+            saveNotesToStorage();
+        }
+
+        function activateNote(wrapper) {
+            if (activeWrapper) {
+                closeActiveNote();
+            }
+
+            const textarea = wrapper.querySelector('textarea');
+            wrapper.classList.add('focused');
+            overlay.classList.add('active');
+            activeWrapper = wrapper;
+            
+            setTimeout(() => {
+                textarea.focus();
+            }, 50);
+        }
+
+        function closeActiveNote() {
+            if (activeWrapper) {
+                const textarea = activeWrapper.querySelector('textarea');
+                textarea.blur();
+                activeWrapper.classList.remove('focused');
+                overlay.classList.remove('active');
+                activeWrapper = null;
+            }
+        }
+
+        function openShortcutsModal() {
+            shortcutsModal.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function closeShortcutsModal() {
+            shortcutsModal.classList.remove('active');
+            if (!activeWrapper) {
+                overlay.classList.remove('active');
+            }
+        }
+
+        function updateAllVisibilities() {
+            document.querySelectorAll('.note-wrapper').forEach(wrapper => {
+                const noteId = wrapper.dataset.id;
+                const noteData = notes.find(n => n.id === noteId);
+                if (noteData) {
+                    applyVisibility(wrapper, noteData.category, noteData.content);
+                }
+            });
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                currentFilter = btn.dataset.category;
+                updateAllVisibilities();
+            });
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim();
+            updateAllVisibilities();
+        });
+
+        addNoteBtn.addEventListener('click', createNewNote);
+
+        shortcutsBtn.addEventListener('click', openShortcutsModal);
+        closeModalBtn.addEventListener('click', closeModalBtn);
+
+        overlay.addEventListener('click', () => {
+            closeActiveNote();
+            closeShortcutsModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                createNewNote();
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveNotesToStorage();
+                showToast('💾 Notes saved!');
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                if (shortcutsModal.classList.contains('active')) {
+                    closeShortcutsModal();
+                } else if (activeWrapper) {
+                    closeActiveNote();
+                }
+                return;
+            }
+
+            if (e.key === 'Delete') {
+                if (activeWrapper && document.activeElement !== activeWrapper.querySelector('textarea')) {
+                    const noteId = activeWrapper.dataset.id;
+                    deleteNote(activeWrapper, noteId);
+                }
+            }
+        });
+
+        setInterval(() => {
+            document.querySelectorAll('.note-wrapper').forEach(wrapper => {
+                const noteId = wrapper.dataset.id;
+                const noteData = notes.find(n => n.id === noteId);
+                if (noteData) {
+                    const updatedAtEl = wrapper.querySelector('.updated-at');
+                    if (updatedAtEl) {
+                        updatedAtEl.textContent = `Edited: ${formatEditedAgo(noteData.updatedAt)}`;
+                    }
+                }
+            });
+        }, 1000);
+
+        loadNotesFromStorage();
+        notes.forEach(noteData => renderNote(noteData));
+        updateDashboardStats();
+    </script>
+</body>
+</html>
